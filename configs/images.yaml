@@ -1,0 +1,32 @@
+scene_name: my_images
+input:
+  source: data/images  # <- Specify the input image folder path here
+  kind: images
+  max_width: 1600
+  blur_threshold: 25.0
+  duplicate_hamming_threshold: -1  # Disable duplicate removal for unordered images
+colmap:
+  matcher: exhaustive  # Use exhaustive matcher for unordered images
+  camera_model: SIMPLE_RADIAL
+  single_camera: true
+  use_gpu: true
+training:
+  max_steps: 7000
+  image_downscale: 2
+  sh_degree: 3
+  sh_degree_interval: 1000
+  l1_weight: 0.8
+  ssim_weight: 0.2
+  random_background: false
+  checkpoint_every: 1000
+  preview_every: 100
+  log_every: 10
+  seed: 42
+  means_lr_final_scale: 0.01
+  learning_rates:
+    means: 0.00016
+    scales: 0.005
+    quats: 0.001
+    opacities: 0.05
+    sh0: 0.0025
+    shN: 0.000125

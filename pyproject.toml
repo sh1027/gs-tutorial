@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gs-tutorial"
+version = "0.1.0"
+description = "An educational smartphone-to-3D Gaussian Splatting pipeline"
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+license = {text = "Apache-2.0"}
+dependencies = [
+  "numpy>=1.24,<3",
+  "Pillow>=10,<12",
+  "pillow-heif>=0.18,<2",
+  "PyYAML>=6,<7",
+  "tqdm>=4.66,<5",
+]
+
+[project.optional-dependencies]
+reconstruction = [
+  "pycolmap>=3.13,<5",
+]
+gpu = [
+  "gsplat==1.5.3",
+  "ninja>=1.11,<2",
+  "scipy>=1.11,<2",
+  "setuptools>=68",
+  "torch>=2.4,<2.12",
+]
+notebook = [
+  "ipywidgets>=8,<9",
+  "jupyterlab>=4,<5",
+  "matplotlib>=3.8,<4",
+  "plotly>=5.20,<7",
+]
+viewer = [
+  "plyfile>=1.1,<2",
+  "viser>=1.0.29,<2",
+]
+dev = [
+  "pytest>=8,<9",
+  "ruff>=0.9,<1",
+]
+
+[project.scripts]
+gs-tutorial = "gs_tutorial.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
