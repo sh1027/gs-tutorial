@@ -3,11 +3,19 @@ set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
-VENV_PATH="${GSPLAT_VENV_DIR:-${REPO_ROOT}/.venv}"
-PYTHON_COMMAND="${GSPLAT_PYTHON:-python3}"
-TORCH_VERSION="${GSPLAT_TORCH_VERSION:-2.5.1}"
-TORCHVISION_VERSION="${GSPLAT_TORCHVISION_VERSION:-0.20.1}"
-TORCH_INDEX_URL="${GSPLAT_TORCH_INDEX_URL:-https://download.pytorch.org/whl/cu121}"
+VENV_PATH="${VENV_DIR:-${REPO_ROOT}/.venv}"
+if [[ -n "${PYTHON_VERSION:-}" ]]; then
+    if [[ ! "${PYTHON_VERSION}" =~ ^3[.](10|11|12)$ ]]; then
+        echo "PYTHON_VERSION must be 3.10, 3.11, or 3.12." >&2
+        exit 2
+    fi
+    PYTHON_COMMAND="python${PYTHON_VERSION}"
+else
+    PYTHON_COMMAND="python3"
+fi
+TORCH_VERSION="${TORCH_VERSION:-2.5.1}"
+TORCHVISION_VERSION="${TORCHVISION_VERSION:-0.20.1}"
+TORCH_INDEX_URL="${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cu121}"
 CHECK_ONLY=0
 
 usage() {
@@ -21,12 +29,14 @@ Options:
   -h       Show this help.
 
 Optional environment variables:
-  GSPLAT_PYTHON             Python executable (default: python3)
-  GSPLAT_VENV_DIR           Virtual environment (default: <repo>/.venv)
-  GSPLAT_CUDA_HOME          CUDA Toolkit directory (default: auto-detect)
-  GSPLAT_TORCH_ARCH         CUDA architecture fallback (default: 8.9)
-  GSPLAT_TORCH_INDEX_URL    PyTorch wheel index (default: cu121)
-  MAX_JOBS                  CUDA extension build parallelism (default: 8)
+  PYTHON_VERSION          Python version: 3.10, 3.11, or 3.12 (default: system python3)
+  VENV_DIR               Virtual environment (default: <repo>/.venv)
+  CUDA_HOME              CUDA Toolkit directory (default: auto-detect)
+  TORCH_CUDA_ARCH_LIST    CUDA architectures (default: detected GPU, otherwise 8.9)
+  TORCH_VERSION          PyTorch version (default: 2.5.1)
+  TORCHVISION_VERSION    TorchVision version (default: 0.20.1)
+  TORCH_INDEX_URL        PyTorch wheel index (default: cu121)
+  MAX_JOBS               CUDA extension build parallelism (default: 8)
 EOF
 }
 
@@ -91,6 +101,12 @@ if (( CHECK_ONLY == 0 )); then
     echo "Installing the tutorial and all local development extras"
     "${VENV_PATH}/bin/python" -m pip install -e \
         "${REPO_ROOT}[reconstruction,gpu,notebook,viewer,dev]"
+
+    echo "Registering the Jupyter kernel: Python (gs-tutorial)"
+    "${VENV_PATH}/bin/python" -m ipykernel install \
+        --user \
+        --name gs-tutorial \
+        --display-name "Python (gs-tutorial)"
 elif [[ ! -x "${VENV_PATH}/bin/python" ]]; then
     echo "Virtual environment not found: ${VENV_PATH}" >&2
     exit 1
@@ -99,8 +115,7 @@ elif ! "${VENV_PATH}/bin/python" -m pip --version >/dev/null 2>&1; then
     exit 1
 fi
 
-export GSPLAT_VENV_DIR="${VENV_PATH}"
-export GSPLAT_CUDA_HOME="${GSPLAT_CUDA_HOME:-${CUDA_HOME:-}}"
+export VENV_DIR="${VENV_PATH}"
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/activate.sh"
 
@@ -110,7 +125,7 @@ import shutil
 
 import torch
 
-packages = ("torch", "gsplat", "pycolmap", "viser", "jupyterlab", "pytest", "ruff")
+packages = ("torch", "gsplat", "pycolmap", "viser", "jupyterlab", "ipykernel", "pytest", "ruff")
 for package in packages:
     print(f"{package}: {version(package)}")
 print(f"CUDA available: {torch.cuda.is_available()}")

@@ -29,6 +29,7 @@ gpu = [
   "torch>=2.4,<2.12",
 ]
 notebook = [
+  "ipykernel>=6,<7",
   "ipywidgets>=8,<9",
   "jupyterlab>=4,<5",
   "matplotlib>=3.8,<4",
