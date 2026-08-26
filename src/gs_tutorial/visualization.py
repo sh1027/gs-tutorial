@@ -170,7 +170,7 @@ def verified_matches_figure(
 
 
 def sparse_scene_figure(scene: SparseScene, max_points: int = 100_000):
-    """Create a Plotly COLMAP view styled like the official Viser demo."""
+    """Create an interactive Plotly view of a COLMAP reconstruction."""
     try:
         import plotly.graph_objects as go
         from plotly.colors import sample_colorscale
@@ -252,124 +252,6 @@ def _thumbnail(path: Path, max_width: int) -> np.ndarray | None:
             height = max(1, round(image.height * max_width / image.width))
             image = image.resize((max_width, height), Image.Resampling.LANCZOS)
         return np.asarray(image)
-
-
-def start_sparse_scene_viewer(
-    scene: SparseScene,
-    image_dir: str | Path,
-    *,
-    port: int = 8081,
-    max_points: int = 100_000,
-    thumbnail_width: int = 320,
-):
-    """Start a non-blocking Viser viewer for an exported COLMAP text model."""
-    try:
-        import viser
-        import viser.transforms as tf
-    except ImportError as exc:
-        raise RuntimeError("Install the 'viewer' optional dependencies") from exc
-
-    image_dir = Path(image_dir)
-    server = viser.ViserServer(port=port)
-    server.gui.configure_theme(titlebar_content=None)
-    server.gui.main_panel.dock_right()
-    server.scene.set_up_direction(_average_camera_up(scene))
-
-    point_limit = min(len(scene.points), max_points)
-    gui_points = server.gui.add_slider(
-        "Max points",
-        min=1,
-        max=point_limit,
-        step=1,
-        initial_value=min(point_limit, 50_000),
-    )
-    gui_frames = server.gui.add_slider(
-        "Max frames",
-        min=1,
-        max=len(scene.images),
-        step=1,
-        initial_value=min(len(scene.images), 50),
-    )
-    point_size_min = max(scene.scene_scale * 0.003, 1e-5)
-    point_size_max = max(scene.scene_scale * 0.03, point_size_min * 10.0)
-    gui_point_size = server.gui.add_slider(
-        "Point size",
-        min=point_size_min,
-        max=point_size_max,
-        step=(point_size_max - point_size_min) / 100.0,
-        initial_value=max(scene.scene_scale * 0.006, point_size_min),
-    )
-
-    def point_indices(count: int) -> np.ndarray:
-        return np.sort(np.random.default_rng(0).choice(len(scene.points), count, replace=False))
-
-    indices = point_indices(int(gui_points.value))
-    point_cloud = server.scene.add_point_cloud(
-        "/colmap/pcd",
-        points=scene.points[indices],
-        colors=scene.colors[indices],
-        point_size=float(gui_point_size.value),
-    )
-
-    @gui_points.on_update
-    def _(_) -> None:
-        indices = point_indices(int(gui_points.value))
-        with server.atomic():
-            point_cloud.points = scene.points[indices]
-            point_cloud.colors = scene.colors[indices]
-
-    @gui_point_size.on_update
-    def _(_) -> None:
-        point_cloud.point_size = float(gui_point_size.value)
-
-    frustum_scale = _frustum_depth(scene)
-    frames = []
-
-    def visualize_frames() -> None:
-        for frame in frames:
-            frame.remove()
-        frames.clear()
-        frame_indices = np.sort(
-            np.random.default_rng(0).choice(len(scene.images), int(gui_frames.value), replace=False)
-        )
-        for index in frame_indices:
-            record = scene.images[int(index)]
-            camera = scene.cameras[record.camera_id]
-            _, fy = _focal_lengths(camera)
-            fov = 2.0 * np.arctan2(camera.height / 2.0, fy)
-            camera_to_world = record.camera_to_world
-            frame = server.scene.add_frame(
-                f"/colmap/frame_{record.image_id}",
-                wxyz=tf.SO3.from_matrix(camera_to_world[:3, :3]).wxyz,
-                position=camera_to_world[:3, 3],
-                axes_length=frustum_scale * (2.0 / 3.0),
-                axes_radius=frustum_scale / 30.0,
-            )
-            frames.append(frame)
-            frustum = server.scene.add_camera_frustum(
-                f"/colmap/frame_{record.image_id}/frustum",
-                fov=float(fov),
-                aspect=camera.width / camera.height,
-                scale=frustum_scale,
-                color=(20, 20, 20),
-                image=_thumbnail(image_dir / record.name, thumbnail_width),
-            )
-
-            @frustum.on_click
-            def _(_, frame=frame) -> None:
-                for client in server.get_clients().values():
-                    client.camera.wxyz = frame.wxyz
-                    client.camera.position = frame.position
-
-    @gui_frames.on_update
-    def _(_) -> None:
-        visualize_frames()
-
-    visualize_frames()
-    server.gui.add_markdown(
-        f"**Registered images:** {len(scene.images):,}  \n**Sparse points:** {len(scene.points):,}"
-    )
-    return server
 
 
 def _quaternions_to_rotation(q: np.ndarray) -> np.ndarray:
