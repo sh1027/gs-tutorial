@@ -64,9 +64,8 @@ def print_environment() -> bool:
     for check in checks:
         mark = "OK" if check.available else "--"
         print(f"[{mark}] {check.name:<{width}}  {check.detail}  ({check.required_for})")
-    training_ok = all(
+    gs_ok = all(
         check.available for check in checks if check.name in {"torch", "gsplat", "NVIDIA GPU"}
     )
     sfm_ok = any(check.available for check in checks if check.name in {"colmap", "pycolmap"})
-    print(f"\nSfM ready: {sfm_ok}; training ready: {training_ok}")
-    return sfm_ok and training_ok
+    return sfm_ok and gs_ok
