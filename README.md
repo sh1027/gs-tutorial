@@ -66,11 +66,11 @@ bash scripts/setup.sh --check
 
 1. [01_preprocess.ipynb](notebooks/01_preprocess.ipynb): 入力画像の抽出と選別
 2. [02_colmap.ipynb](notebooks/02_colmap.ipynb): 特徴抽出、マッチング、カメラ姿勢推定
-3. [03_gaussian.ipynb](notebooks/03_gaussian.ipynb): Gaussianの学習、評価、表示
+3. [03_gaussian.ipynb](notebooks/03_gaussian.ipynb): Gaussianの訓練、評価、表示
 
 ### Viewerを開く
 
-学習完了後、別のターミナルでviewerを起動します。このターミナルはviewerを表示している間、そのまま起動しておきます。
+訓練完了後、別のターミナルでviewerを起動します。このターミナルはviewerを表示している間、そのまま起動しておきます。
 
 ```bash
 cd gs-tutorial
@@ -110,4 +110,4 @@ gs-tutorial reconstruct --config configs/video.yaml --backend cli
 ```
 
 処理結果は`outputs/<scene_name>/`へ保存されます。既存出力は自動で上書きされません。
-前処理、学習、評価をやり直す場合のみ、対応するコマンドに`--overwrite`を指定してください。
+前処理、訓練、評価をやり直す場合のみ、対応するコマンドに`--overwrite`を指定してください。
